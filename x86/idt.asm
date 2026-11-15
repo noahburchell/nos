@@ -20,7 +20,7 @@ bits 64
 	shr  rax, 16
 	mov  [rel %{1}_gate + 8], eax ; offset bits 32-63
 
-	mov  ax, cs ; the selector UEFI left you
+	mov  ax, cs ; uefi selector
 	mov  [rel %{1}_gate + 2], ax
 %endmacro
 
