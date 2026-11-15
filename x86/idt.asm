@@ -1,11 +1,9 @@
-null_idt:
-	dw 0x0000
-	dq 0x0000000000000000
+bits 64
 
-de_handler:
-	lidt [rel null_idt]
-	int 3
-	; handler
+section .data
+align 16
+
+idt:
 
 de_gate:
 	dw 0x0000 ; offset
@@ -16,9 +14,11 @@ de_gate:
 	dd 0x00000000 ; offset 3
 	dd 0x00000000 ; zero
 
+idt_end:
+
 idtr:
 	dw idt_end - de_gate - 1
-	dq de_gate
+	dq 0
 
 ;;; ???
 section .text
@@ -33,5 +33,23 @@ setup_idt:
 	mov  [rel de_gate + 8], eax ; bits 32-63
 	lidt [rel idtr]
 
-	int 0x000B00B5
+	mov  ax, cs ; this is uefi gfdt!> .!> !>
+	mov  [rel de_gate + 2], ax
+
+	; int 0x000B00B5
+
+	lea  rax, [rel idt]
+	mov  [rel idtr + 2], rax
+	lidt [rel idt]
+	ret ; ???
+
 ;;; ???? /??? ??? ?? ? ?? ? ?? ?? ? ?? ? ? ?? ?? ? ?? ?? ? ?? ? ?
+
+null_idt:
+	dw 0x0000
+	dq 0x0000000000000000
+
+de_handler:
+	lidt [rel null_idt]
+	int 3
+	; handler
