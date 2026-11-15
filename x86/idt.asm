@@ -1,18 +1,33 @@
 bits 64
 
+%macro GATE 1
+%{1}_gate:
+	dw 0 ; offset 0-15
+	dw 0 ; selector
+	db 0 ; ist
+	db 0x8E ; attrib
+	dw 0 ; offset 16-31
+	dd 0 ; offset 32-63
+	dd 0 ; reserved
+%endmacro
+
+; SET_GATE interrupt (de, pf)
+%macro SET_GATE 1
+	lea  rax, [rel %{1}_handler]
+	mov  [rel %{1}_gate], ax ; offset bits 0-15
+	shr  rax, 16
+	mov  [rel %{1}_gate + 6], ax ; offset bits 16-31
+	shr  rax, 16
+	mov  [rel %{1}_gate + 8], eax ; offset bits 32-63
+
+	mov  ax, cs ; the selector UEFI left you
+	mov  [rel %{1}_gate + 2], ax
+%endmacro
+
 section .data
 align 16
 
 idt:
-
-de_gate:
-	dw 0x0000 ; offset
-	dw 0x0000 ; selector
-	db 0x00 ; ist
-	db 0x8E ; attrib
-	dw 0x0000 ; offset 2
-	dd 0x00000000 ; offset 3
-	dd 0x00000000 ; zero
 
 idt_end:
 
@@ -25,22 +40,16 @@ section .text
 	global setup_idt
 
 setup_idt:
-	lea  rax, [rel de_handler]
-	mov  [rel de_gate], ax ; bits 0-15
-	shr  rax, 16
-	mov  [rel de_gate + 6], ax ; bits 16-31
-	shr  rax, 16
-	mov  [rel de_gate + 8], eax ; bits 32-63
-	lidt [rel idtr]
-
-	mov  ax, cs ; this is uefi gfdt!> .!> !>
-	mov  [rel de_gate + 2], ax
+	SET_GATE de
+	SET_GATE db
+	SET_GATE nmi
+	SET_GATE bp
 
 	; int 0x000B00B5
 
 	lea  rax, [rel idt]
 	mov  [rel idtr + 2], rax
-	lidt [rel idt]
+	lidt [rel idtr]
 	ret ; ???
 
 ;;; ???? /??? ??? ?? ? ?? ? ?? ?? ? ?? ? ? ?? ?? ? ?? ?? ? ?? ? ?
@@ -52,4 +61,23 @@ null_idt:
 de_handler:
 	lidt [rel null_idt]
 	int 3
+	ret
+	; handler
+
+db_handler:
+	lidt [rel null_idt]
+	int 3
+	ret
+	; handler
+
+nmi_handler:
+	lidt [rel null_idt]
+	int 3
+	ret
+	; handler
+
+bp_handler:
+	lidt [rel null_idt]
+	int 3
+	ret
 	; handler
